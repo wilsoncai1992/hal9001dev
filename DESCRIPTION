@@ -1,4 +1,4 @@
-Package: hal9001
+Package: hal9001dev
 Title: A fast, computationally efficient Highly Adaptive LASSO (HAL)
 Version: 0.0.9
 Authors@R: c(
