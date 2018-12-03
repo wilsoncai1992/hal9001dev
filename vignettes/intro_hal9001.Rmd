@@ -1,0 +1,124 @@
+---
+title: "Introduction to the HAL estimator"
+author: "Nima Hejazi"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+bibliography: vignette-refs.bib
+vignette: >
+  %\VignetteIndexEntry{Introduction to the HAL estimator}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Introduction
+
+...
+
+[@benkeser2016hal], [@vdl2015generally], [@vdl2017finite]
+
+---
+
+## Preliminaries
+
+...
+
+```{r setup, echo=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(microbenchmark)
+```
+
+```{r sim-data}
+# simulation constants
+set.seed(467392)
+n_obs <- 1000
+n_covars <- 3
+
+# make some training data
+x <- replicate(n_covars, rnorm(n_obs))
+y <- sin(x[, 1]) * sin(x[, 2]) + rnorm(n_obs, 0, 0.2)
+
+# make some testing data
+test_x <- replicate(n_covars, rnorm(n_obs))
+test_y <- sin(x[, 1]) * sin(x[, 2]) + rnorm(n_obs, 0, 0.2)
+```
+
+Look at simulated data...
+
+```{r sim-view}
+head(x)
+head(y)
+```
+
+---
+
+## Using the Highly Adaptive LASSO
+
+```{r}
+library(hal9001)
+```
+
+### Fitting the model
+
+```{r fit-hal, eval=FALSE}
+hal_fit <- fit_hal(X = x, Y = y)
+hal_fit$times
+```
+
+```{r benchmark-hal, eval=FALSE}
+# perform benchmarking
+m_hal <- microbenchmark(unit = "s", times = 20,
+  hal_fit_m <- fit_hal(X = x, Y = y)
+)
+
+# make plot
+p_hal_times <- m_hal %>%
+ dplyr::transmute(
+     time_sec = time / 10^9
+ ) %>%
+ gather() %>%
+ ggplot(., aes(x = key, y = value)) + geom_boxplot() + geom_point() +
+   xlab("") + ylab("time (sec.)") + ggtitle("HAL9001") + theme_minimal()
+
+p_hal_times
+summary(m_hal)
+```
+
+...
+
+### Obtaining model predictions
+
+```{r eval-mse, eval=FALSE}
+# training sample prediction for HAL vs HAL9000
+mse <- function(preds, y) {
+    mean((preds - y)^2)
+}
+
+preds_hal <- predict(object = hal_fit, newdata = x)
+mse_hal <- mse(preds = preds_hal, y = y)
+mse_hal
+```
+
+```{r eval-oob, eval=FALSE}
+oob_hal <- predict(object = hal_fit, newdata = test_x)
+oob_hal_mse <- mse(preds = oob_hal, y = test_y)
+oob_hal_mse
+```
+
+### "Squashing" the model object
+
+```{r squash-hal9001, eval=FALSE}
+squashed_hal <- squash_hal_fit(hal_fit)
+
+sq_preds <- predict(object = squashed_hal, newdata = x)
+sq_oob_hal <- predict(object = squashed_hal, newdata = test_x)
+
+cbind(preds_hal, sq_preds)
+cbind(oob_hal, sq_oob_hal)
+```
+
+---
+
+## References
+
